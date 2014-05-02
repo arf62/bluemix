@@ -6,13 +6,28 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.SQLWarning;
+import java.sql.Time;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
 
 
+
+
+
+
+
+
+
+
 import twitter4j.FilterQuery;
+import twitter4j.HashtagEntity;
 import twitter4j.StallWarning;
 import twitter4j.Status;
 import twitter4j.StatusDeletionNotice;
@@ -23,7 +38,8 @@ import twitter4j.User;
 import twitter4j.conf.ConfigurationBuilder;
 
 public class Stream {
-    public static void main(String[] args)  {
+	
+    public static void main(String[] args)throws IOException {
         ConfigurationBuilder cb = new ConfigurationBuilder();
         cb.setDebugEnabled(true);
         
@@ -73,25 +89,133 @@ consumer_secret = "4yvJ7j14ZNbzq50agG40NLtKspyrwegZC7C667Cx2Ck"
                 
                 // gets Username
                 String username = status.getUser().getScreenName();
-                System.out.println(username);
+                HashtagEntity[] hashtag = status.getHashtagEntities();
+                String [] tags = new String[hashtag.length];
+                
+                for(int j =0; j<hashtag.length;j++){
+                	HashtagEntity job0 = (HashtagEntity) hashtag[j];
+    	        tags[j] = job0.getText();	
+    	        
+    	        	}
+               
+                
+                
+                StringBuilder builder = new StringBuilder();
+	            for(String s : tags) {
+	                builder.append(s+",");
+	            }
+	            String Taggs = builder.toString();
+                
+                
+              //.out.println(username);
                 String profileLocation = user.getLocation();
-                System.out.println(profileLocation);
+                
+               // System.out.println(profileLocation);
                 long tweetId = status.getId(); 
                 System.out.println(tweetId);
                 String content = status.getText();
+               Date time = status.getCreatedAt();
+                int retweet_count = status.getRetweetCount();
                 
+              //  System.out.println(time);
                 
+               Stream obj = new Stream();
+                System.out.println(obj);
                 
-                Stream obj = new Stream();
       		  HashMap<String, WordAttributes> cache2 = (HashMap<String, WordAttributes>)obj.run();
-      		
-          
+      	String newline;
+      	String[] Newword =new String[2];
+      	
+      	System.out.println("After loading words");
+		try {
+			newline = obj.JSONAnalysis(content,cache2);
+			Newword = newline.split(",");
+			System.out.println("After running json analysis ");
+		} catch (FileNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+      	
+      	
       		  
+      	String variance = Newword[0];
+      	String intensity = Newword[1];
+      	
+      	System.out.println(variance+"************************************");
+      		  
+      		 ////////////////////DB Connection////////////////////////
+  			
+              try
+              {
+               // Load the database driver
+              	Class.forName("com.mysql.jdbc.Driver");
+                  Connection conn = null;
+                 
+
+               // Get a connection to the database
+                  conn = DriverManager.getConnection("jdbc:mysql://127.0.0.1:3306/test","root", "root");            // Print all warnings
+               
+                  for( SQLWarning warn = conn.getWarnings(); warn != null; warn = warn.getNextWarning() )
+                  {
+                   System.out.println( "SQL Warning:" ) ;
+                   System.out.println( "State  : " + warn.getSQLState()  ) ;
+                   System.out.println( "Message: " + warn.getMessage()   ) ;
+                   System.out.println( "Error  : " + warn.getErrorCode() ) ;
+                  }
+
+               // Get a statement from the connection
+               java.sql.Statement stmt = conn.createStatement() ;
+               //java.sql.Statement stmt2 = conn.createStatement() ;
+
+               // Execute the query
+              int rs = stmt.executeUpdate("insert into test.sentiment (tweet_id,user_name,city,tweet,variance,intensity,hashtags,time,retweet_count	)values ('"+tweetId+"',\""+username+"\",\""+profileLocation+"\",\""+content+"\",\""+variance+"\",\""+intensity+"\",\""+Taggs+"\",\""+time+"\",'"+retweet_count+"') ;" ) ;
+
+               // Loop through the result set
+              
+                 
+               
+               // Close the result set, statement and the connection
+              
+               stmt.close() ;
+               conn.close() ;
+              }
+           catch( SQLException se )
+              {
+          	 
+               System.out.println( "SQL Exception:" ) ;
+
+               // Loop through the SQL Exceptions
+               while( se != null )
+                  {
+                   System.out.println( "State  : " + se.getSQLState()  ) ;
+                   System.out.println( "Message: " + se.getMessage()   ) ;
+                   System.out.println( "Error  : " + se.getErrorCode() ) ;
+
+                   se = se.getNextException() ;
+                  
+                  }
+               
+               
+              }
+           catch( Exception e )
+              {
+               System.out.println( e ) ;
+               e.printStackTrace();
+              }
+  			
+  	//////////////////////////////////////////////////////////////		
+  	    	
+      		  
+          
+      		  /*
       		  String newline;
 			try {
 				newline = obj.JSONAnalysis(content,cache2);
-			//	newline = tweetId+"		"+username+"		"+profileLocation+"		"+newline+"		"+hashtags+"		"+retweet+	;
-				newline = tweetId+"		"+username+"		"+profileLocation+"		"+newline ;
+				newline = tweetId+"		"+username+"		"+profileLocation+"		"+newline+"		"+Taggs+"		"+time+"		"+retweet_count	;
+				//newline = tweetId+"		"+username+"		"+profileLocation+"		"+newline ;
               //  System.out.println(newline);     
                 
                 
@@ -123,7 +247,7 @@ consumer_secret = "4yvJ7j14ZNbzq50agG40NLtKspyrwegZC7C667Cx2Ck"
 			}
              
                 
-                
+                */
                 System.out.println(content +"\n");
 
             }
@@ -143,7 +267,8 @@ consumer_secret = "4yvJ7j14ZNbzq50agG40NLtKspyrwegZC7C667Cx2Ck"
         };
         FilterQuery fq = new FilterQuery();
     
-        String keywords[] = {"Ibm,bluemix,impact,cloudfoundry,devops"};
+       String keywords[] = {"Ibm,bluemix,impact,cloudfoundry,devops"};
+      //  String keywords[] = {"IPL"};
 
         fq.track(keywords);
 
@@ -163,6 +288,8 @@ consumer_secret = "4yvJ7j14ZNbzq50agG40NLtKspyrwegZC7C667Cx2Ck"
 	  // method for loading the words from the csv file 
 	 
 	  public HashMap<String, WordAttributes> run() {
+		  
+		  System.out.println("in side run ");
 	 
 		String csvFile = "E:/bluemix/all2.txt";
 		BufferedReader br = null;
@@ -282,7 +409,7 @@ consumer_secret = "4yvJ7j14ZNbzq50agG40NLtKspyrwegZC7C667Cx2Ck"
     	
     	
     	
-    	output = tweet+"			"+Avg_ValenceMean+"			"+Avg_ArousalMean ;
+    	output = Avg_ValenceMean+","+Avg_ArousalMean ;
     	
      
     	
